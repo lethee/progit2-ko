@@ -73,7 +73,7 @@ def parse(line):
 	# anchor
 	m = re.match(r"^\[\[(.*)\]\]$", line)
 	if m:
-		book.append("<책갈피 이름=" + m.group(1) + ">\n")
+		book.append("<책갈피 여기는=" + m.group(1) + ">\n")
 		return
 
 	# image-desc
@@ -89,10 +89,10 @@ def parse(line):
 		index_fig += 1
 
 	# index
-	line = re.sub(r"\(\(\((.*?)\)\)\)", r"<인덱스=\1>", line)
+	line = re.sub(r"\(\(\((.*?)\)\)\)", r"<인덱스 여기는=\1>", line)
 
 	# ref
-	line = re.sub(r"<<(.*)>>", r"<책갈피 대상=\1>", line)
+	line = re.sub(r"<<(.*)>>", r"<책갈피 가리킴=\1>", line)
 
 	# fix http link
 	m = re.match(r"(.*)(http.*)\[\](.*)", line);
