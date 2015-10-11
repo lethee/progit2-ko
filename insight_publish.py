@@ -5,6 +5,7 @@ import shutil
 from collections import OrderedDict
 
 figure_dict = {} # 'local.png':'1-1'
+index_set = set()
 
 def parse_comment(line):
 	global book, block, in_block
@@ -89,6 +90,9 @@ def parse(line):
 		index_fig += 1
 
 	# index
+	ms = re.findall(r"\(\(\((.*?)\)\)\)", line)
+	if ms:
+		index_set.update(ms)
 	line = re.sub(r"\(\(\((.*?)\)\)\)", r"<인덱스 여기는=\1>", line)
 
 	# ref
@@ -131,7 +135,6 @@ asc_files['Intro'] = 'book/introduction.asc'
 asc_files['Pre'] = 'book/preface.asc'
 asc_files['Toc'] = 'book/toc.asc'
 
-
 for ch in asc_files:
 	index_fig = 1
 	index_fig_ch = ch
@@ -149,6 +152,10 @@ for ch in asc_files:
 		print len(book), out_name
 		for line in book:
 			f.write(line)
+
+with open("publish_book_index_english.txt", 'w') as f:
+	for line in sorted(index_set):
+		f.write(line + '\n')
 
 # To convert image name to index,
 # download images into 'progit2-ko-images' directory
