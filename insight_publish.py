@@ -1,6 +1,10 @@
 #-*- coding: utf-8 -*-
 import re
 import os
+import shutil
+from collections import OrderedDict
+
+figure_dict = {} # 'local.png':'1-1'
 
 def parse_comment(line):
 	global book, block, in_block
@@ -15,9 +19,8 @@ def parse_comment(line):
 	else:
 	  block.append(line)
 
-
 def parse(line):
-	global book, depth, cwd, block, in_block
+	global book, depth, cwd, block, in_block, index_fig_ch, index_fig
 
 	# block - comment
 	if in_block == 'comment':
@@ -73,9 +76,17 @@ def parse(line):
 		book.append("<책갈피 이름=" + m.group(1) + ">\n")
 		return
 
+	# image-desc
+	m = re.match(r"^\..*\.$", line)
+	if m:
+		return;
+
 	# image
-	if line.startswith('image::images/'):
-		line = line.replace('image::images/', '<그림> ')
+	m = re.match(r"^image::images\/(.*)\[(.*)\]$", line)
+	if m:
+		line = '<그림 %s-%d> %s\n' % (index_fig_ch, index_fig, m.group(2))
+		figure_dict[m.group(1)] = '%s-%d' % (index_fig_ch, index_fig)
+		index_fig += 1
 
 	# index
 	line = re.sub(r"\(\(\((.*?)\)\)\)", r" <인덱스=\1>", line)
@@ -90,30 +101,36 @@ depth = 1
 cwd = '.'
 block = []
 in_block = ''
+index_fig_ch = 0 # 'figure 1-1' for chapter part
+index_fig    = 0 # 'figure 1-1' for figure part
 
-asc_files = [
-		'book/01-introduction/1-introduction.asc',
-		'book/02-git-basics/1-git-basics.asc',
-		'book/03-git-branching/1-git-branching.asc',
-		'book/04-git-server/1-git-server.asc',
-		'book/05-distributed-git/1-distributed-git.asc',
-		'book/06-github/1-github.asc',
-		'book/07-git-tools/1-git-tools.asc',
-		'book/08-customizing-git/1-customizing-git.asc',
-		'book/09-git-and-other-scms/1-git-and-other-scms.asc',
-		'book/10-git-internals/1-git-internals.asc',
-		'book/A-git-in-other-environments/1-git-other-environments.asc',
-		'book/B-embedding-git/1-embedding-git.asc',
-		'book/C-git-commands/1-git-commands.asc',
-		'book/contributors.asc',
-		'book/index.asc',
-		'book/introduction.asc',
-		'book/preface.asc',
-		'book/toc.asc']
+asc_files = OrderedDict()
 
-for asc_file in asc_files:
+asc_files['1'] = 'book/01-introduction/1-introduction.asc'
+asc_files['2'] = 'book/02-git-basics/1-git-basics.asc'
+asc_files['3'] = 'book/03-git-branching/1-git-branching.asc'
+asc_files['4'] = 'book/04-git-server/1-git-server.asc'
+asc_files['5'] = 'book/05-distributed-git/1-distributed-git.asc'
+asc_files['6'] = 'book/06-github/1-github.asc'
+asc_files['7'] = 'book/07-git-tools/1-git-tools.asc'
+asc_files['8'] = 'book/08-customizing-git/1-customizing-git.asc'
+asc_files['9'] = 'book/09-git-and-other-scms/1-git-and-other-scms.asc'
+asc_files['10'] = 'book/10-git-internals/1-git-internals.asc'
+asc_files['A'] = 'book/A-git-in-other-environments/1-git-other-environments.asc'
+asc_files['B'] = 'book/B-embedding-git/1-embedding-git.asc'
+asc_files['C'] = 'book/C-git-commands/1-git-commands.asc'
+asc_files['D'] = 'book/contributors.asc'
+asc_files['Index'] = 'book/index.asc'
+asc_files['Intro'] = 'book/introduction.asc'
+asc_files['Pre'] = 'book/preface.asc'
+asc_files['Toc'] = 'book/toc.asc'
+
+
+for ch in asc_files:
+	index_fig = 1
+	index_fig_ch = ch
 	book = []
-	path = cwd + "/" + asc_file
+	path = cwd + "/" + asc_files[ch]
 	with open(path) as f:
 		old_cwd = cwd
 		for line in f.readlines():
@@ -121,8 +138,32 @@ for asc_file in asc_files:
 			parse(line)
 		cwd = old_cwd
 
-	out_name = 'publish_' + asc_file.replace('/', '_') + '.txt'
+	out_name = 'publish_' + asc_files[ch].replace('/', '_') + '.txt'
 	with open(out_name, 'w') as f:
 		print len(book), out_name
 		for line in book:
 			f.write(line)
+
+# To convert image name to index,
+# download images into 'progit2-ko-images' directory
+# Make a directory 'images_insight' images to be copied
+print 'Rename %d Images...' % len(figure_dict)
+for root, dirs, files in os.walk('progit2-ko-images'):
+	if not root.endswith('/images'):
+		continue
+	for filename in files:
+		if filename in figure_dict:
+			src = os.path.join(root, filename)
+			dst = os.path.join('images_insight', '%s_%s' % (figure_dict[filename], filename))
+			if not os.path.exists(dst):
+				shutil.copy(src, dst)
+			continue
+		m = re.match(r"^(.*?)@.*$", filename)
+		if m:
+			prefix = m.group(1) + '.png'
+			if prefix in figure_dict:
+				src = os.path.join(root, filename)
+				dst = os.path.join('images_insight', '%s_%s' % (figure_dict[prefix], filename))
+				if not os.path.exists(dst):
+					shutil.copy(src, dst)
+				continue
