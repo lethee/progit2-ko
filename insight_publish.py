@@ -94,6 +94,12 @@ def parse(line):
 	# ref
 	line = re.sub(r"<<(.*)>>", r"<책갈피 대상=\1>", line)
 
+	# fix http link
+	m = re.match(r"(.*)(http.*)\[\](.*)", line);
+	if m:
+		book.append("%s%s%s\n" % (m.group(1), m.group(2), m.group(3)))
+		return;
+
 	book.append(line)
 
 book = []
