@@ -89,7 +89,7 @@ def parse(line):
 		index_fig += 1
 
 	# index
-	line = re.sub(r"\(\(\((.*?)\)\)\)", r" <인덱스=\1>", line)
+	line = re.sub(r"\(\(\((.*?)\)\)\)", r"<인덱스=\1>", line)
 
 	# ref
 	line = re.sub(r"<<(.*)>>", r"<책갈피 대상=\1>", line)
