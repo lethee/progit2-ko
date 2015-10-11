@@ -20,8 +20,9 @@ def parse_comment(line):
 	else:
 	  block.append(line)
 
+parse_image_desc = ''
 def parse(line):
-	global book, depth, cwd, block, in_block, index_fig_ch, index_fig
+	global book, depth, cwd, block, in_block, index_fig_ch, index_fig, parse_image_desc
 
 	# block - comment
 	if in_block == 'comment':
@@ -78,14 +79,20 @@ def parse(line):
 		return
 
 	# image-desc
-	m = re.match(r"^\..*\.$", line)
+	m = re.match(r"^\..*$", line)
 	if m:
+		parse_image_desc = line
 		return;
 
 	# image
 	m = re.match(r"^image::images\/(.*)\[(.*)\]$", line)
 	if m:
-		line = '<그림 %s-%d> %s\n' % (index_fig_ch, index_fig, m.group(2))
+		print "desc:", parse_image_desc.strip()
+		if len(parse_image_desc) == 0:
+			parse_image_desc = m.group(2)
+		parse_image_desc = parse_image_desc.strip(" .\n");
+		print "alt :", parse_image_desc
+		line = '<그림 %s-%d> %s\n' % (index_fig_ch, index_fig, parse_image_desc)
 		figure_dict[m.group(1)] = '%s-%d' % (index_fig_ch, index_fig)
 		index_fig += 1
 
@@ -104,6 +111,7 @@ def parse(line):
 		book.append("%s%s%s\n" % (m.group(1), m.group(2), m.group(3)))
 		return;
 
+	parse_image_desc = ''
 	book.append(line)
 
 book = []
