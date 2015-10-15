@@ -20,6 +20,36 @@ def parse_comment(line):
 	else:
 	  block.append(line)
 
+def parse_code(line):
+	global book, block, in_block
+
+	if line.startswith('//////////'):
+		raise Exception('Comment in Code')
+
+	if in_block == 'code':
+		if line.startswith('----'):
+			in_block = 'code-line'
+			book.append('<코드>\n')
+			return
+		if line.startswith('  '):
+			in_block = 'code-indent'
+			book.append('<코드>\n')
+			book.append(line)
+			return
+	if in_block == 'code-line':
+		if line.startswith('----'):
+			in_block = ''
+			book.append('</코드>\n')
+			return
+		book.append(line)
+	if in_block == 'code-indent':
+		if line.startswith('  '):
+			book.append(line)
+			return
+		in_block = ''
+		book.append('</코드>\n')
+
+
 parse_image_desc = ''
 def parse(line):
 	global book, depth, cwd, block, in_block, index_fig_ch, index_fig, parse_image_desc
@@ -29,9 +59,19 @@ def parse(line):
 		parse_comment(line)
 		return
 
+	# block - code
+	if in_block.startswith('code'):
+		parse_code(line)
+		return
+
 	# comment
 	if line.startswith('/////'):
 		in_block = 'comment'
+		return
+
+	# code
+	if line.startswith('[source'):
+		in_block = 'code'
 		return
 
 	# metadata
@@ -47,7 +87,10 @@ def parse(line):
 		with open(path) as f:
 			cwd = os.path.dirname(path)
 			for line in f.readlines():
-				parse(line)
+				try:
+					parse(line)
+				except Exception as e:
+					raise Exception(e.message + ": " + path)
 		depth -= 1
 		cwd = old_cwd
 		return
@@ -87,12 +130,10 @@ def parse(line):
 	# image
 	m = re.match(r"^image::images\/(.*)\[(.*)\]$", line)
 	if m:
-		print "desc:", parse_image_desc.strip()
 		if len(parse_image_desc) == 0:
 			parse_image_desc = m.group(2)
 		parse_image_desc = parse_image_desc.strip(" .\n");
-		print "alt :", parse_image_desc
-		line = '<그림 %s-%d> %s\n' % (index_fig_ch, index_fig, parse_image_desc)
+		line = '<그림> %s-%d %s </그림>\n' % (index_fig_ch, index_fig, parse_image_desc)
 		figure_dict[m.group(1)] = '%s-%d' % (index_fig_ch, index_fig)
 		index_fig += 1
 
