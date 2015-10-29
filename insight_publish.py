@@ -121,6 +121,12 @@ def parse(line):
 		book.append("<책갈피 여기는=" + m.group(1) + ">\n")
 		return
 
+	# dotted list
+	m = re.match(r"^\. .*$", line)
+	if m:
+		book.append(line)
+		return;
+
 	# image-desc
 	m = re.match(r"^\..*$", line)
 	if m:
